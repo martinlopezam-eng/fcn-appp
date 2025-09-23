@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FCN - Home</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="assets/logo.png" />
+</head>
+<body>
+  <header class="top-bar">
+    <h2>Bienvenido <span id="userPhone"></span></h2>
+    <button id="logoutBtn" class="btn small">Cerrar sesión</button>
+  </header>
+
+  <main>
+    <!-- HOME -->
+    <section id="homeView" class="view active">
+      <img src="https://grupoproindustria.org/wp-content/uploads/2023/05/Empresa-en-el-mercado.jpg" 
+           alt="Empresa" class="banner" />
+
+      <h3>Productos disponibles</h3>
+      <div id="productos" class="productos-container"></div>
+    </section>
+
+    <!-- INVERSION -->
+    <section id="inversionView" class="view">
+      <h3>Mis inversiones</h3>
+      <div id="misInversiones" class="inversiones-container"></div>
+    </section>
+
+    <!-- EQUIPO -->
+    <section id="equipoView" class="view">
+      <h3>Equipo</h3>
+      <img src="assets/qrt.pgn.jpg" alt="QR Telegram" class="qr" />
+      <p><b>Código invitación:</b> <span id="inviteCode"></span></p>
+      <p><b>Ingresos totales:</b> COP <span id="ingresosTotales">0</span></p>
+    </section>
+
+    <!-- YO -->
+    <section id="yoView" class="view">
+      <h3>Mi perfil</h3>
+      <p><b>Nombre:</b> <span id="perfilNombre"></span></p>
+      <p><b>Teléfono:</b> <span id="perfilTelefono"></span></p>
+      <p><b>Saldo:</b> COP <span id="perfilSaldo">0</span></p>
+
+      <h4>Retiro Nequi</h4>
+      <input id="nequiPhone" type="text" placeholder="Número Nequi" />
+      <input id="withdrawAmount" type="number" placeholder="Monto a retirar" />
+      <button id="withdrawBtn" class="btn small">Solicitar retiro</button>
+
+      <p><b>Sobre nosotros:</b> Somos FCN, tu plataforma de inversión.</p>
+    </section>
+  </main>
+
+  <nav class="navbar">
+    <button class="nav-btn active" data-view="homeView">Home</button>
+    <button class="nav-btn" data-view="inversionView">Mi inversión</button>
+    <button class="nav-btn" data-view="equipoView">Equipo</button>
+    <button class="nav-btn" data-view="yoView">Yo</button>
+  </nav>
+
+  <script src="script.js"></script>
+  <script src="home.js"></script>
+</body>
+</html>
