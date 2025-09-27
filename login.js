@@ -2,11 +2,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("loginForm");
   const msgEl = document.getElementById("message");
 
-  form.addEventListener("submit", (e) => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
+
     const name = document.getElementById("name").value.trim();
-    const phone = normalizePhone(document.getElementById("phone").value.trim());
-    const password = document.getElementById("password").value;
+    const phone = document.getElementById("phone").value.trim();
+    const password = document.getElementById("password").value.trim();
     const invite = document.getElementById("invite").value.trim();
 
     if (!phone || !password) {
@@ -18,44 +19,90 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    let users = getUsers();
-    let existing = users.find(u => normalizePhone(u.phone) === phone);
+    try {
+      // Intentar login primero
+      let res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, password })
+      });
+      let data = await res.json();
 
-    if (existing) {
-      if (existing.password !== password) {
-        msgEl.textContent = "Contraseña incorrecta";
-        return;
-      }
-      msgEl.textContent = "Iniciando sesión...";
-      setCurrentUser(existing);
-      setTimeout(() => location.href = "home.html", 800);
-    } else {
-      msgEl.textContent = "Creando cuenta... Iniciando sesión";
+      if (res.ok) {
+        localStorage.setItem("currentUser", JSON.stringify(data));
+        location.href = "home.html";
+      } else {
+        // Si no existe, registrar
+        msgEl.textContent = "Usuario no encontrado, creando cuenta...";
+        res = await fetch("/api/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, phone, password, invite })
+        });
+        data = await res.json();
 
-      let inviteCode = phone + "-FCN";
-      let newUser = { 
-        name, 
-        phone, 
-        password, 
-        invite, 
-        saldo:3000, 
-        ingresos:3000, 
-        inversiones:[], 
-        inviteCode 
-      };
-
-      if (invite) {
-        let inviter = users.find(u => u.inviteCode === invite);
-        if (inviter) {
-          inviter.ingresos += 10000;
-          inviter.saldo += 10000;
+        if (res.ok) {
+          localStorage.setItem("currentUser", JSON.stringify(data));
+          setTimeout(() => location.href = "home.html", 800);
+        } else {
+          msgEl.textContent = data.error || "Error al registrar";
         }
       }
+    } catch (err) {
+      console.error(err);
+      msgEl.textContent = "Error de conexión con el servidor";
+    }
+  });
+});
 
-      users.push(newUser);
-      saveUsers(users);
-      setCurrentUser(newUser);
-      setTimeout(() => location.href = "home.html", 1000);
+async function comprar(id) {
+  const res = await fetch("/api/orders", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phone: u.phone, productId: id })
+  });
+  const data = await res.json();
+
+  if (res.ok) {
+    alert(`✅ Orden creada\n\nProducto: ${data.producto}\nMonto: COP ${data.monto.toLocaleString()}\n\nRealiza el pago a: ${data.cuenta}`);
+  } else {
+    alert(data.error);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("loginForm");
+  const msgEl = document.getElementById("message");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const name = document.getElementById("name").value.trim();
+    const phone = document.getElementById("phone").value.trim();
+    const password = document.getElementById("password").value;
+    const invite = document.getElementById("invite").value.trim();
+
+    let url = "/api/login";
+    let body = { phone, password };
+
+    // Intentar login primero
+    let res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    let data = await res.json();
+
+    if (data.error) {
+      // Si no existe → registrar
+      let res2 = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, phone, password, invite })
+      });
+      data = await res2.json();
+    }
+
+    if (data.error) {
+      msgEl.textContent = data.error;
+    } else {
+      localStorage.setItem("currentUser", JSON.stringify(data));
+      location.href = "home.html";
     }
   });
 });

@@ -2,59 +2,15 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pagar con QR</title>
   <link rel="stylesheet" href="styles.css">
-  <style>
-    .qr-container {
-      max-width: 420px;
-      margin: 2rem auto;
-      background: #1e1e1e;
-      border: 1px solid #333;
-      border-radius: 12px;
-      padding: 2rem;
-      text-align: center;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-    }
-    .qr-container h2 {
-      margin-bottom: 1rem;
-      color: #00c853;
-    }
-    .qr-container p {
-      color: #bbb;
-      margin-bottom: 1.5rem;
-    }
-    .qr-container img {
-      max-width: 280px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.6);
-    }
-    .btn-volver {
-      margin-top: 1.5rem;
-      display: inline-block;
-      padding: 0.6rem 1.2rem;
-      border: 1px solid #00c853;
-      border-radius: 8px;
-      color: #00c853;
-      background: none;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-    .btn-volver:hover {
-      background: #00c853;
-      color: #fff;
-    }
-  </style>
 </head>
-<body>
-  <main>
-    <div class="qr-container">
-      <h2>Realizar tu pago</h2>
-      <p>Escanea este código QR para completar tu compra:</p>
-      <img src="assets/qr.png" alt="Código QR de pago">
-      <br>
-      <button class="btn-volver" onclick="window.location.href='home.html'">Volver</button>
-    </div>
-  </main>
+<body class="qr-body">
+  <div class="qr-card">
+    <h2>Escanea este QR para pagar</h2>
+    <img class="qr-img" src="assets/qr.jpg.png" alt="QR de pago">
+    <p class="qr-note">Usa tu app de Nequi para completar el pago</p>
+    <button class="btn" onclick="location.href='home.html'">Volver al inicio</button>
+  </div>
 </body>
 </html>

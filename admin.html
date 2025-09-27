@@ -2,30 +2,167 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Panel Admin - FCN</title>
-  <link rel="stylesheet" href="styles.css">
+  <title>Panel Admin</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      color: #333;
+    }
+    header {
+      background: #2c3e50;
+      color: #fff;
+      padding: 1rem;
+      text-align: center;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding: 20px;
+      max-width: 1100px;
+      margin: auto;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    h2 {
+      margin-top: 0;
+      font-size: 1.4rem;
+      color: #2c3e50;
+      margin-bottom: 1rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+      text-align: left;
+    }
+    th {
+      background: #f9fafc;
+    }
+    .status {
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      display: inline-block;
+    }
+    .status-pendiente {
+      background: #f39c12;
+      color: #fff;
+    }
+    .status-aprobada {
+      background: #27ae60;
+      color: #fff;
+    }
+    .status-rechazada {
+      background: #e74c3c;
+      color: #fff;
+    }
+    button {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      margin-right: 6px;
+    }
+    .btn-approve {
+      background: #27ae60;
+      color: #fff;
+    }
+    .btn-approve:hover {
+      background: #219150;
+    }
+    .btn-reject {
+      background: #e74c3c;
+      color: #fff;
+    }
+    .btn-reject:hover {
+      background: #c0392b;
+    }
+    .empty {
+      text-align: center;
+      color: #888;
+      font-style: italic;
+      margin-top: 10px;
+    }
+  </style>
 </head>
 <body>
-  <header class="top-bar">
-    <h2>Panel de Administración</h2>
+  <header>
+    <h1>Panel de Administración</h1>
   </header>
 
-  <main style="padding:20px;">
-    <h3>Órdenes de compra</h3>
-    <table border="1" width="100%" cellpadding="5">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Usuario</th>
-          <th>Producto</th>
-          <th>Monto</th>
-          <th>Estado</th>
-          <th>Acción</th>
-        </tr>
-      </thead>
-      <tbody id="ordenesTabla"></tbody>
-    </table>
-  </main>
+  <div class="container">
+    <!-- Órdenes -->
+    <div class="card">
+      <h2>Órdenes</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Usuario</th>
+            <th>Producto</th>
+            <th>Monto</th>
+            <th>Estado</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+        <tbody id="ordenes">
+          <tr><td colspan="6" class="empty">Cargando órdenes...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Retiros -->
+    <div class="card">
+      <h2>Retiros</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Usuario</th>
+            <th>Monto</th>
+            <th>Estado</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+        <tbody id="retiros">
+          <tr><td colspan="5" class="empty">Cargando retiros...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Usuarios -->
+    <div class="card">
+      <h2>Usuarios</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Teléfono</th>
+            <th>Saldo</th>
+            <th>Ingresos</th>
+            <th>Invitación</th>
+          </tr>
+        </thead>
+        <tbody id="usuarios">
+          <tr><td colspan="6" class="empty">Cargando usuarios...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 
   <script src="admin.js"></script>
 </body>

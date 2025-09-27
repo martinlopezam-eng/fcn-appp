@@ -1,147 +1,195 @@
 const express = require("express");
-const fs = require("fs");
 const path = require("path");
-const bodyParser = require("body-parser");
-const cors = require("cors");
-const { v4: uuidv4 } = require("uuid");
+const sqlite3 = require("sqlite3").verbose();
+const bcrypt = require("bcryptjs");
 
 const app = express();
-const PORT = 3000;
-
-app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
-// --- Archivos de datos ---
-const USERS_FILE = path.join(__dirname, "data", "users.json");
-const ORDERS_FILE = path.join(__dirname, "data", "orders.json");
+// ---- Conexión BD ----
+const db = new sqlite3.Database("./fcn.db");
 
-// --- Helpers ---
-function readJSON(file) {
-  if (!fs.existsSync(file)) return [];
-  return JSON.parse(fs.readFileSync(file, "utf8"));
-}
+// Crear tablas si no existen
+db.serialize(() => {
+  db.run(`CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    phone TEXT UNIQUE,
+    password TEXT,
+    saldo INTEGER DEFAULT 0,
+    ingresos INTEGER DEFAULT 0,
+    inviteCode TEXT
+  )`);
 
-function writeJSON(file, data) {
-  fs.writeFileSync(file, JSON.stringify(data, null, 2), "utf8");
-}
+  db.run(`CREATE TABLE IF NOT EXISTS orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    phone TEXT,
+    producto TEXT,
+    monto INTEGER,
+    estado TEXT
+  )`);
 
-// ========================
-// RUTAS DE USUARIO
-// ========================
-app.post("/api/register", (req, res) => {
-  let users = readJSON(USERS_FILE);
-  const { phone, password } = req.body;
+  db.run(`CREATE TABLE IF NOT EXISTS retiros (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    phone TEXT,
+    monto INTEGER,
+    estado TEXT
+  )`);
+});
 
-  if (users.find(u => u.phone === phone)) {
-    return res.json({ ok: false, msg: "Usuario ya existe" });
-  }
+// ---- Rutas usuarios ----
+app.post("/api/register", async (req, res) => {
+  const { name, phone, password, invite } = req.body;
+  if (!phone || !password) return res.status(400).json({ error: "Datos incompletos" });
 
-  const newUser = {
-    phone,
-    password,
-    saldo: 0,
-    ingresos: 3000, // bono de registro
-    inviteCode: "FCN" + Math.floor(Math.random() * 100000),
-    inversiones: []
-  };
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const inviteCode = phone + "-FCN";
 
-  users.push(newUser);
-  writeJSON(USERS_FILE, users);
+  db.run(
+    `INSERT INTO users (name, phone, password, saldo, ingresos, inviteCode) VALUES (?, ?, ?, ?, ?, ?)`,
+    [name, phone, hashedPassword, 3000, 3000, inviteCode],
+    function (err) {
+      if (err) return res.status(400).json({ error: "Usuario ya existe" });
 
-  res.json({ ok: true, user: newUser });
+      // Si tiene invitador, sumarle 10k
+      if (invite) {
+        db.run(
+          `UPDATE users SET saldo = saldo + 10000, ingresos = ingresos + 10000 WHERE inviteCode = ?`,
+          [invite]
+        );
+      }
+
+      res.json({ id: this.lastID, phone, saldo: 3000, ingresos: 3000, inviteCode });
+    }
+  );
 });
 
 app.post("/api/login", (req, res) => {
-  let users = readJSON(USERS_FILE);
   const { phone, password } = req.body;
 
-  const u = users.find(x => x.phone === phone && x.password === password);
-  if (!u) return res.json({ ok: false, msg: "Credenciales inválidas" });
+  db.get(`SELECT * FROM users WHERE phone = ?`, [phone], async (err, user) => {
+    if (err || !user) return res.status(400).json({ error: "Usuario no encontrado" });
 
-  res.json({ ok: true, user: u });
-});
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) return res.status(400).json({ error: "Contraseña incorrecta" });
 
-// ========================
-// RUTAS DE ÓRDENES
-// ========================
-
-// Crear orden (desde Comprar en home.js)
-app.post("/api/crear-orden", (req, res) => {
-  let orders = readJSON(ORDERS_FILE);
-  const { phone, productoId, productoObj } = req.body;
-
-  const nuevaOrden = {
-    id: uuidv4(),
-    phone,
-    producto: productoObj,
-    estado: "pendiente",
-    fecha: new Date().toISOString()
-  };
-
-  orders.push(nuevaOrden);
-  writeJSON(ORDERS_FILE, orders);
-
-  res.json({
-    ok: true,
-    orderId: nuevaOrden.id,
-    qrPage: `/qr.html?orderId=${nuevaOrden.id}`
+    res.json(user);
   });
 });
 
-// Listar todas las órdenes (para admin)
-app.get("/api/ordenes", (req, res) => {
-  let orders = readJSON(ORDERS_FILE);
-  res.json(orders);
+// ---- Productos (fijos en la BD o hardcodeados) ----
+const productos = [
+  { id: 1, nombre: "Fondo Bienestar", monto: 15000 },
+  { id: 2, nombre: "Plan Premium", monto: 30000 },
+  { id: 3, nombre: "Inversión Oro", monto: 250000 },
+  { id: 4, nombre: "Inversión Platino", monto: 120000 },
+  { id: 5, nombre: "Inversión Diamante", monto: 240000 },
+];
+
+app.get("/api/productos", (req, res) => res.json(productos));
+
+// ---- Crear orden de compra ----
+app.post("/api/comprar", (req, res) => {
+  const { phone, productoId } = req.body;
+  const prod = productos.find(p => p.id === productoId);
+  if (!prod) return res.status(400).json({ error: "Producto inválido" });
+
+  db.run(
+    `INSERT INTO orders (phone, producto, monto, estado) VALUES (?, ?, ?, ?)`,
+    [phone, prod.nombre, prod.monto, "pendiente"],
+    function (err) {
+      if (err) return res.status(500).json({ error: "Error al crear orden" });
+      res.json({ success: true, orderId: this.lastID });
+    }
+  );
 });
 
-// Aceptar orden
-app.post("/api/ordenes/:id/aceptar", (req, res) => {
-  let orders = readJSON(ORDERS_FILE);
-  let users = readJSON(USERS_FILE);
-  const orderId = req.params.id;
+// ---- Retiros ----
+app.post("/api/withdraw", (req, res) => {
+  const { phone, amount } = req.body;
 
-  let orden = orders.find(o => o.id === orderId);
-  if (!orden) return res.json({ ok: false, msg: "Orden no encontrada" });
+  if (amount < 50000) return res.status(400).json({ error: "Monto mínimo: 50,000 COP" });
 
-  orden.estado = "aprobada";
+  db.get(`SELECT saldo FROM users WHERE phone = ?`, [phone], (err, user) => {
+    if (err || !user) return res.status(400).json({ error: "Usuario no encontrado" });
+    if (user.saldo < amount) return res.status(400).json({ error: "Saldo insuficiente" });
 
-  // Agregar inversión al usuario
-  let u = users.find(x => x.phone === orden.phone);
-  if (u) {
-    u.inversiones.push({
-      ...orden.producto,
-      progreso: 0,
-      cobrado: 0,
-      ultimaCobranza: new Date().toISOString()
-    });
+    db.run(
+      `INSERT INTO retiros (phone, monto, estado) VALUES (?, ?, ?)`,
+      [phone, amount, "pendiente"],
+      function (err2) {
+        if (err2) return res.status(500).json({ error: "Error en retiro" });
+        res.json({ success: true, retiroId: this.lastID });
+      }
+    );
+  });
+});
+
+// ---- Admin ----
+app.post("/api/admin/login", (req, res) => {
+  const { user, password } = req.body;
+  if (user === "admin" && password === "admin123") {
+    res.json({ success: true, token: "admin-token" });
+  } else {
+    res.status(401).json({ error: "Credenciales inválidas" });
   }
-
-  writeJSON(ORDERS_FILE, orders);
-  writeJSON(USERS_FILE, users);
-
-  res.json({ ok: true, msg: "Orden aprobada" });
 });
 
-// Rechazar orden
-app.post("/api/ordenes/:id/rechazar", (req, res) => {
-  let orders = readJSON(ORDERS_FILE);
-  const orderId = req.params.id;
-
-  let orden = orders.find(o => o.id === orderId);
-  if (!orden) return res.json({ ok: false, msg: "Orden no encontrada" });
-
-  orden.estado = "rechazada";
-
-  writeJSON(ORDERS_FILE, orders);
-
-  res.json({ ok: true, msg: "Orden rechazada" });
+app.get("/api/admin/ordenes", (req, res) => {
+  db.all(`SELECT * FROM orders WHERE estado = 'pendiente'`, [], (err, rows) => {
+    res.json(rows);
+  });
 });
 
-// ========================
-// SERVIDOR
-// ========================
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+app.post("/api/admin/ordenes/:id/accion", (req, res) => {
+  const { id } = req.params;
+  const { accion } = req.body;
+
+  db.get(`SELECT * FROM orders WHERE id = ?`, [id], (err, order) => {
+    if (!order) return res.status(404).json({ error: "Orden no encontrada" });
+
+    if (accion === "aprobar") {
+      db.run(`UPDATE orders SET estado = 'aprobada' WHERE id = ?`, [id]);
+      db.run(`UPDATE users SET saldo = saldo + ? WHERE phone = ?`, [order.monto, order.phone]);
+    } else {
+      db.run(`UPDATE orders SET estado = 'rechazada' WHERE id = ?`, [id]);
+    }
+    res.json({ success: true });
+  });
 });
 
+app.get("/api/admin/retiros", (req, res) => {
+  db.all(`SELECT * FROM retiros WHERE estado = 'pendiente'`, [], (err, rows) => {
+    res.json(rows);
+  });
+});
+
+app.post("/api/admin/retiros/:id/accion", (req, res) => {
+  const { id } = req.params;
+  const { accion } = req.body;
+
+  db.get(`SELECT * FROM retiros WHERE id = ?`, [id], (err, retiro) => {
+    if (!retiro) return res.status(404).json({ error: "Retiro no encontrado" });
+
+    if (accion === "aprobar") {
+      db.run(`UPDATE retiros SET estado = 'aprobado' WHERE id = ?`, [id]);
+      db.run(`UPDATE users SET saldo = saldo - ? WHERE phone = ?`, [retiro.monto, retiro.phone]);
+    } else {
+      db.run(`UPDATE retiros SET estado = 'rechazado' WHERE id = ?`, [id]);
+    }
+    res.json({ success: true });
+  });
+});
+
+// ---- Puerto ----
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`🚀 Server en http://localhost:${PORT}`));
+
+// ---- Listar usuarios ----
+app.get("/api/admin/usuarios", (req, res) => {
+  db.all(`SELECT id, name, phone, saldo, ingresos, inviteCode FROM users`, [], (err, rows) => {
+    if (err) return res.status(500).json({ error: "Error al cargar usuarios" });
+    res.json(rows);
+  });
+});

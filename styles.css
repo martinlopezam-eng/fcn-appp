@@ -399,3 +399,62 @@ input::placeholder {
   height: 100%;
   transition: width 0.5s ease-in-out;
 }
+
+/* ===== Fondo general ===== */
+body.qr-body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: black;
+  border: 1px solid #333;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+/* ===== Tarjeta QR como producto ===== */
+.qr-card {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  padding: 25px;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(52, 39, 39, 0.1);
+  text-align: center;
+  width: 340px;
+}
+
+.qr-card h2 {
+  margin-bottom: 15px;
+  font-size: 20px;
+  color: white;
+}
+
+.qr-img {
+  width: 220px;
+  height: 220px;
+  margin: 15px 0;
+  border-radius: 10px;
+  border: 3px solid #eee;
+}
+
+.qr-note {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 20px;
+}
+
+/* ===== Botón estilo home ===== */
+.btn {
+  background: #007bff;
+  color: black;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+  transition: background 0.3s;
+}
+
+.btn:hover {
+  background: #0056b3;
+}
